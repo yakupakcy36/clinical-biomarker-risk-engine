@@ -10,6 +10,7 @@ from src.generator import generate_clinical_cohort
 from src.model import train_clinical_risk_engine, ClinicalRiskEngineBundle
 from api.schemas import (
     PatientVitalsRequest,
+    BatchPatientVitalsRequest,
     PatientRiskResponse,
     DcaPoint,
     DcaEvaluationResponse,
@@ -67,12 +68,36 @@ def assess_risk(patient: PatientVitalsRequest):
     res = bundle.predict_patient_risk(df)
 
     return PatientRiskResponse(
+        patient_id=patient.patient_id,
         predicted_risk_pct=res.predicted_risk_pct,
         risk_tier=res.risk_tier,
         recommended_clinical_action=res.recommended_clinical_action,
         primary_risk_drivers=res.primary_risk_drivers,
         brier_reliability_score=res.brier_reliability_score,
     )
+
+
+@app.post("/risk/assess/batch", response_model=List[PatientRiskResponse], tags=["Clinical Risk"])
+def assess_risk_batch(req: BatchPatientVitalsRequest):
+    """Evaluates a batch of patients across clinical wards."""
+    if bundle is None:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Model bundle not ready")
+
+    results: List[PatientRiskResponse] = []
+    for patient in req.patients:
+        df = pd.DataFrame([patient.model_dump()])
+        res = bundle.predict_patient_risk(df)
+        results.append(
+            PatientRiskResponse(
+                patient_id=patient.patient_id,
+                predicted_risk_pct=res.predicted_risk_pct,
+                risk_tier=res.risk_tier,
+                recommended_clinical_action=res.recommended_clinical_action,
+                primary_risk_drivers=res.primary_risk_drivers,
+                brier_reliability_score=res.brier_reliability_score,
+            )
+        )
+    return results
 
 
 @app.get("/dca/curves", response_model=DcaEvaluationResponse, tags=["Clinical Validation"])

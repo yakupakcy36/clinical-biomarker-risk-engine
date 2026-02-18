@@ -62,6 +62,47 @@ def test_risk_assess_high_risk(client):
     assert any("Lactate" in d or "Troponin" in d or "shock" in d.lower() for d in data["primary_risk_drivers"])
 
 
+def test_risk_assess_batch(client):
+    payload = {
+        "patients": [
+            {
+                "patient_id": "WARD-01",
+                "age": 40,
+                "has_diabetes": 0,
+                "has_hypertension": 0,
+                "systolic_bp": 120.0,
+                "heart_rate": 72.0,
+                "spo2": 99.0,
+                "troponin_i": 0.01,
+                "bnp": 30.0,
+                "creatinine": 0.8,
+                "crp": 1.0,
+                "lactate": 0.9
+            },
+            {
+                "patient_id": "WARD-02",
+                "age": 85,
+                "has_diabetes": 1,
+                "has_hypertension": 1,
+                "systolic_bp": 82.0,
+                "heart_rate": 130.0,
+                "spo2": 84.0,
+                "troponin_i": 3.8,
+                "bnp": 2100.0,
+                "creatinine": 4.1,
+                "crp": 110.0,
+                "lactate": 5.4
+            }
+        ]
+    }
+    response = client.post("/risk/assess/batch", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    assert data[0]["patient_id"] == "WARD-01"
+    assert data[1]["patient_id"] == "WARD-02"
+
+
 def test_dca_curves_endpoint(client):
     response = client.get("/dca/curves")
     assert response.status_code == 200

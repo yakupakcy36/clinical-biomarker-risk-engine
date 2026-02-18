@@ -1,10 +1,11 @@
 """Pydantic schemas for the Clinical Biomarker Risk API."""
 
-from typing import List, Dict
+from typing import List, Dict, Optional
 from pydantic import BaseModel, Field
 
 
 class PatientVitalsRequest(BaseModel):
+    patient_id: str = Field(default="PATIENT-001", description="Patient identifier")
     age: int = Field(default=65, ge=18, le=105, description="Patient age in years")
     has_diabetes: int = Field(default=0, ge=0, le=1)
     has_hypertension: int = Field(default=1, ge=0, le=1)
@@ -18,7 +19,12 @@ class PatientVitalsRequest(BaseModel):
     lactate: float = Field(default=1.2, ge=0.2, le=20.0, description="Serum Lactate (mmol/L)")
 
 
+class BatchPatientVitalsRequest(BaseModel):
+    patients: List[PatientVitalsRequest]
+
+
 class PatientRiskResponse(BaseModel):
+    patient_id: Optional[str] = None
     predicted_risk_pct: float
     risk_tier: str
     recommended_clinical_action: str
